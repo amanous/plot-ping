@@ -142,30 +142,44 @@ def window_init(do_bar = True, do_gw = None):
   #app.exec_()
   return (app, top, bar, textbox, textbox_gw, hist, hist_gw)
 
+# 0,255 -> 255,255 : green to yellow
+# 255,255 -> 255,0 : yellow to red
+def rtt_to_colour_gradient(rtt, max_val = __SCALE):
+  if type(rtt) != int:
+    return QColor(0, 0, 0)
+
+  if rtt * 1.0 >= max_val:
+    return QColor(255, 0, 0) # == Qt.red
+
+  v = rtt * 1.0 * 512 / max_val
+  if v >= 256:
+    return QColor(255, int(255-(v-256)), 0)
+  else:
+    return QColor(int(v), 255, 0)
+
+def rtt_to_colour_simple(rtt):
+  if type(rtt) == int:
+    return Qt.green if rtt <= __WARN_ABOVE else QColor(255, 153, 0)
+  else:
+    return Qt.red
+
 def window_draw(window, rtt, do_bar = True, rtt_gw = None, ttl_gw = None):
   app, top, bar, textbox, textbox_gw, hist, hist_gw = window
-  def rtt_to_colour(rtt):
-    if type(rtt) == int:
-      return Qt.green if rtt <= __WARN_ABOVE else QColor(255, 153, 0)
-    else:
-      return Qt.red
   textvalue = rtt if type(rtt) == int else 0
-  color = rtt_to_colour(rtt)
   palette = QPalette()
-  palette.setColor(QPalette.Base, color)
+  palette.setColor(QPalette.Base, rtt_to_colour_simple(rtt))
   if do_bar:
     bar.setValue(textvalue)
   textbox.setText(str(rtt))
   textbox.setPalette(palette)
-  add_history_point(hist, color)
+  add_history_point(hist, rtt_to_colour_gradient(rtt))
   if textbox_gw:
     textbox_gw.setText(str(rtt_gw))
   if hist_gw:
-    color_gw = rtt_to_colour(rtt_gw)
     palette_gw = QPalette()
-    palette_gw.setColor(QPalette.Base, color_gw)
+    palette_gw.setColor(QPalette.Base, rtt_to_colour_simple(rtt_gw))
     textbox_gw.setPalette(palette_gw)
-    add_history_point(hist_gw, color_gw)
+    add_history_point(hist_gw, rtt_to_colour_gradient(rtt_gw))
   app.sendPostedEvents()
   app.processEvents()
 
